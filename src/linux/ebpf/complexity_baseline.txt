@@ -1,0 +1,95 @@
+# vandam-core BPF verifier complexity baseline
+#
+# Regenerate with:
+#   sudo ./build/bin/kinnector-bpf-complexity measure build/kinnector.bpf.o \
+#       --out src/linux/ebpf/complexity_baseline.txt
+# WARNING: --out rewrites this whole file, including these notes. To add a new
+# program, measure without --out and add its line by hand. Regenerate only when
+# the reference kernel moves, then restore the notes.
+# Check against it with:
+#   ./scripts/check-bpf-complexity.sh
+#
+# Counts are the verifier's own "processed N insns", measured per program with
+# every other program's autoload turned off. The ceiling is 1000000; the tool
+# fails a program at 75% of it.
+#
+# These numbers are KERNEL-DEPENDENT - a different kernel's verifier explores a
+# different number of states for identical bytecode. Treat a diff taken across
+# two different kernels as noise, and regenerate the baseline when the
+# reference kernel moves. Recorded on 6.17.0-40-generic.
+#
+# HOW KERNEL-DEPENDENT, measured on identical bytecode. The worst program
+# (tracepoint_sys_enter_execve/execveat, and the totals track it):
+#
+#   6.1.186    509740 insns   51.0% of ceiling    total 1108017
+#   6.6.155    509730 insns   51.0% of ceiling    total 1082326
+#   6.12.107   205961 insns   20.6% of ceiling    total  483267
+#   6.17.0     205857 insns   20.6% of ceiling    total  488660
+#   6.18.46    205857 insns   20.6% of ceiling    total  488833
+#
+# So the same object costs 2.47x more verifier work on 6.1/6.6 than on 6.12+,
+# and that ratio is almost entirely those two tracepoints (every other program
+# moves by <10%). The cliff sits between 6.6 and 6.12.
+#
+# Why this matters for the gate: it fails a program at 75% of the ceiling. Read
+# on a 6.12+ host the worst program looks like it has 79% headroom; on 6.1 and
+# 6.6 - Debian 12 and the 6.6 LTS line, real deployment targets - it has 49%.
+# A change that adds ~47% to that program passes there and is rejected outright
+# on the older kernels, which is the -E2BIG-and-enforce-nothing failure this
+# gate exists to catch. Re-measure on 6.1 (in a VM) before assuming headroom.
+#
+bpf_syscall_guard 46
+bprm_check_security 764
+bprm_committing_creds 380
+bprm_creds_for_exec 5407
+capset 209
+file_mprotect 1866
+file_open 22506
+file_permission 16171
+inode_create 2362
+inode_free_security 121
+inode_link 2502
+inode_mkdir 2362
+inode_rename 10820
+inode_symlink 2478
+inode_unlink 2897
+iter_task_start_times 39
+kprobe_tty_read 219
+kprobe_tty_write 284
+kretprobe_tty_read 109
+lsm_d_instantiate 1287
+mmap_file 2882
+path_chmod 181
+ptrace_access_check 977
+sb_pivotroot 102
+shm_shmat 327
+socket_accept 225
+socket_connect 5275
+socket_listen 2
+socket_sendmsg 924
+task_fix_setgid 419
+task_fix_setuid 419
+task_kill 744
+task_prctl 385
+tracepoint_sched_process_exec 148
+tracepoint_sched_process_exit 176
+tracepoint_sched_process_fork 388
+tracepoint_sys_enter_clone 121
+tracepoint_sys_enter_clone3 130
+tracepoint_sys_enter_connect 212
+tracepoint_sys_enter_dup2 567
+tracepoint_sys_enter_dup3 567
+tracepoint_sys_enter_execve 224298
+tracepoint_sys_enter_execveat 224298
+tracepoint_sys_enter_listen 211
+tracepoint_sys_enter_mmap 260
+tracepoint_sys_enter_mprotect 253
+tracepoint_sys_enter_openat 130
+tracepoint_sys_enter_process_vm_readv 133
+tracepoint_sys_enter_process_vm_writev 134
+tracepoint_sys_enter_setgroups 156
+tracepoint_sys_enter_setns 380
+tracepoint_sys_enter_unshare 379
+unix_stream_connect 241
+warden_path_chroot 371
+warden_sb_mount 371
